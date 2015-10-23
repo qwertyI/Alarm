@@ -2,12 +2,17 @@ package com.alarm.qwerty.Activity;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.Window;
+import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
+
 import com.alarm.qwerty.Adapter.MusicAdapter;
 import com.alarm.qwerty.R;
 import java.io.BufferedReader;
@@ -26,14 +31,17 @@ public class MusicActivity extends Activity {
     private static final String MUSIC_FILE_NAME = "music.txt";
 
     private List<MusicName> Musics = new ArrayList<>();
+    private SharedPreferences.Editor editor;
 
     private ListView music_lv;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_music);
+        editor = getSharedPreferences("Alarm_Music", MODE_PRIVATE).edit();
         File file = Environment.getExternalStorageDirectory();
         if (fileIsExists()){
             try {
@@ -50,6 +58,14 @@ public class MusicActivity extends Activity {
         MusicAdapter musicAdapter = new MusicAdapter(this, R.layout.music_lv_item, Musics);
         music_lv = (ListView) findViewById(R.id.music_lv);
         music_lv.setAdapter(musicAdapter);
+        music_lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                editor.putString("name", Musics.get(position).getMusicName());
+                editor.commit();
+                finish();
+            }
+        });
     }
 
 /*
