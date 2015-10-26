@@ -2,6 +2,7 @@ package com.alarm.qwerty.Activity;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
@@ -11,8 +12,6 @@ import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.ProgressBar;
-
 import com.alarm.qwerty.Adapter.MusicAdapter;
 import com.alarm.qwerty.R;
 import java.io.BufferedReader;
@@ -29,12 +28,14 @@ import java.util.List;
 public class MusicActivity extends Activity {
 
     private static final String MUSIC_FILE_NAME = "music.txt";
+    private static final String MUSIC_FILE_PATH = "musicPath.txt";
+
 
     private List<MusicName> Musics = new ArrayList<>();
+    private List<MusicPath> Music_path = new ArrayList<>();
     private SharedPreferences.Editor editor;
 
     private ListView music_lv;
-    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +44,10 @@ public class MusicActivity extends Activity {
         setContentView(R.layout.activity_music);
         editor = getSharedPreferences("Alarm_Music", MODE_PRIVATE).edit();
         File file = Environment.getExternalStorageDirectory();
-        if (fileIsExists()){
+        if (fileIsExists(MUSIC_FILE_NAME) && fileIsExists(MUSIC_FILE_PATH)){
             try {
                 WriteToMusics();
+                WriteToMusicPath();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -53,6 +55,9 @@ public class MusicActivity extends Activity {
             getName(file);
             for(MusicName musicName: Musics){
                 Save(MUSIC_FILE_NAME, musicName.getMusicName());
+            }
+            for (MusicPath music_path : Music_path){
+                Save(MUSIC_FILE_PATH, music_path.getMusicPath());
             }
         }
         MusicAdapter musicAdapter = new MusicAdapter(this, R.layout.music_lv_item, Musics);
@@ -62,7 +67,14 @@ public class MusicActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 editor.putString("name", Musics.get(position).getMusicName());
+                editor.putString("path", Music_path.get(position).getMusicPath());
                 editor.commit();
+//                发送一个广播，将音乐路径传递过去，播放音乐
+                Intent intent = new Intent("com.alarm.start");
+                intent.putExtra("music", Musics.get(position).getMusicName());
+                intent.putExtra("path", Music_path.get(position).getMusicPath());
+                sendBroadcast(intent);
+                setResult(RESULT_OK, intent);
                 finish();
             }
         });
@@ -86,6 +98,7 @@ public class MusicActivity extends Activity {
                 }else if (files[i].isFile()){
                     if (files[i].getName().endsWith(".mp3")){
                         Musics.add(new MusicName(files[i].getName()));
+                        Music_path.add(new MusicPath(files[i].getPath()));
                     }
                 }
             }
@@ -105,17 +118,29 @@ public class MusicActivity extends Activity {
         }
     }
 
+    public class MusicPath{
+        private String path;
+
+        public MusicPath(String path){
+            this.path = path;
+        }
+        public String getMusicPath(){
+            return path;
+        }
+    }
+
     /*
     * by.qwerty
     * 向文件中写入数据
     * */
-    public void Save(String FileName, String data){
-        FileOutputStream out = null;
+    public void Save(String MusicName, String nameData){
+        FileOutputStream outName = null;
+        FileOutputStream outPath = null;
         BufferedWriter writer = null;
         try{
-            out = openFileOutput(FileName, Context.MODE_APPEND);
-            writer = new BufferedWriter(new OutputStreamWriter(out));
-            writer.write(data);
+            outName = openFileOutput(MusicName, Context.MODE_APPEND);
+            writer = new BufferedWriter(new OutputStreamWriter(outName));
+            writer.write(nameData);
             writer.write("\r\n");
         }catch (IOException e){
             e.printStackTrace();
@@ -135,12 +160,12 @@ public class MusicActivity extends Activity {
 *
 * 遇到的问题，使用file1 == MUSIC_FILE_NAME时，每次都报不相等，使用equals后才正常
 * */
-    public boolean fileIsExists(){
+    public boolean fileIsExists(String filename){
         try{
             File file = this.getFilesDir();
             String[] files = file.list();
             for (String file1:files){
-                if (file1.equals(MUSIC_FILE_NAME)){
+                if (file1.equals(filename)){
                     return true;
                 }
             }
@@ -164,6 +189,19 @@ public class MusicActivity extends Activity {
         while ((line = bufferedReader.readLine()) != null){
             MusicName musicName = new MusicName(line);
             Musics.add(musicName);
+        }
+        bufferedReader.close();
+        fileInputStream.close();
+    }
+
+    public void WriteToMusicPath() throws IOException{
+        FileInputStream fileInputStream = openFileInput(MUSIC_FILE_PATH);
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fileInputStream, "utf-8"));
+//        DataInputStream dataInputStream = new DataInputStream(fileInputStream);
+        String line = null;
+        while ((line = bufferedReader.readLine()) != null){
+            MusicPath musicPath = new MusicPath(line);
+            Music_path.add(musicPath);
         }
         bufferedReader.close();
         fileInputStream.close();
