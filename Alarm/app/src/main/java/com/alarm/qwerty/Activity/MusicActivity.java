@@ -6,12 +6,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
+
 import com.alarm.qwerty.Adapter.MusicAdapter;
 import com.alarm.qwerty.R;
 import java.io.BufferedReader;
@@ -29,13 +33,25 @@ public class MusicActivity extends Activity {
 
     private static final String MUSIC_FILE_NAME = "music.txt";
     private static final String MUSIC_FILE_PATH = "musicPath.txt";
-
+    private static final int LOAD_MUSIC = 1;
 
     private List<MusicName> Musics = new ArrayList<>();
     private List<MusicPath> Music_path = new ArrayList<>();
     private SharedPreferences.Editor editor;
+    private File file;
 
     private ListView music_lv;
+
+    private Handler handler = new Handler() {
+        public void handleMessage(Message message){
+            switch (message.what){
+                case LOAD_MUSIC:
+                    getName(file);
+                    break;
+                default:break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +59,7 @@ public class MusicActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_music);
         editor = getSharedPreferences("Alarm_Music", MODE_PRIVATE).edit();
-        File file = Environment.getExternalStorageDirectory();
+        file = Environment.getExternalStorageDirectory();
         if (fileIsExists(MUSIC_FILE_NAME) && fileIsExists(MUSIC_FILE_PATH)){
             try {
                 WriteToMusics();
@@ -52,6 +68,14 @@ public class MusicActivity extends Activity {
                 e.printStackTrace();
             }
         }else {
+//            new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Message message = new Message();
+//                    message.what = LOAD_MUSIC;
+//                    handler.sendMessage(message);
+//                }
+//            }).start();
             getName(file);
             for(MusicName musicName: Musics){
                 Save(MUSIC_FILE_NAME, musicName.getMusicName());
@@ -73,7 +97,7 @@ public class MusicActivity extends Activity {
                 Intent intent = new Intent("com.alarm.start");
                 intent.putExtra("music", Musics.get(position).getMusicName());
                 intent.putExtra("path", Music_path.get(position).getMusicPath());
-                sendBroadcast(intent);
+//                sendBroadcast(intent);
                 setResult(RESULT_OK, intent);
                 finish();
             }
@@ -85,7 +109,7 @@ public class MusicActivity extends Activity {
 * 使用递归的方法遍历SD卡中的所有文件夹和文件
 * 如果是文件夹，则将文件夹中的文件取出后，进一步判断
 * 如果是文件则判断是否以.mp3结尾
-***********************************************************************************
+***********************************************************************************s
 * 使用中碰到的问题：File[] files = file.listFiles();这一步需要有相应的权限才可以，
 * 比如我的代码中读SD卡，没有权限，则files一直为null，每次都闪退
 * */

@@ -10,13 +10,12 @@ import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 import com.alarm.qwerty.Activity.AlarmActivity;
 import com.alarm.qwerty.R;
-
 import java.io.File;
 
 public class AlarmReceiver extends BroadcastReceiver {
 
     private NotificationManager mManager;
-    private SharedPreferences gpf;
+    private SharedPreferences gpf = AlarmActivity.getMusic_gpf();
 
     public AlarmReceiver() {
     }
@@ -35,7 +34,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 .setTicker("comein=")
                 .setWhen(System.currentTimeMillis())
                 .setContentIntent(pendingIntent)
-                .setSound(Uri.fromFile(new File(intent.getStringExtra("path"))))
+                .setSound(Uri.fromFile(new File(gpf.getString("path", ""))))
                 .setSmallIcon(R.drawable.comein)
                 .setVibrate(new long[]{0, 2000, 1000, 2000});
         mManager.notify(1, mBuilder.build());

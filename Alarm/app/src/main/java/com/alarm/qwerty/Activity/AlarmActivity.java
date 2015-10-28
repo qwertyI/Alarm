@@ -6,44 +6,60 @@ import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
-import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.TimePicker;
-
 import com.alarm.qwerty.R;
-
-import org.w3c.dom.Text;
-
-import java.util.ArrayList;
+import com.alarm.qwerty.Activity.MusicActivity;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
 
 public class AlarmActivity extends Activity implements OnClickListener{
 
-    private List<Alarm> Alarms = new ArrayList<>();
+    private final String ALARM_RECODE = "alarm";
+    private final String ALARM_MUSIC = "Alarm_Music";
+    private final String ALARM_ACTION = "com.alarm.start";
+    private final int ALARM_TIME_UPDATE = 1;
 
-    private Button select_music;
-    private Button create_alarm;
-    private TextView music_name;
+    private ImageButton select_music;
+    private TextView alarm_time;
     private EditText music_name_et;
+    private Switch mSwitch;
 
-    public SharedPreferences gpf;
+    private static SharedPreferences music_gpf;
+    private SharedPreferences alarm_time_gpf;
     private AlarmManager alarmManager;
     private PendingIntent pendingIntent;
     private TimePickerDialog tpd = null;
+    private Calendar calendar;
+    private SharedPreferences.Editor editor;
 
     private int hours;
     private int minutes;
+    private String sHours;
+    private String sMinutes;
+
+    private Handler handler = new Handler() {
+        public void handleMessage(Message message){
+            switch (message.what){
+                case ALARM_TIME_UPDATE:
+                    alarm_time.setText(sHours+":"+sMinutes);
+                    break;
+                default:break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,35 +67,45 @@ public class AlarmActivity extends Activity implements OnClickListener{
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_alarm);
 
-        TimePickerDialog.OnTimeSetListener onTimeSetListener = new TimePickerDialog.OnTimeSetListener() {
-            @Override
-            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                hours = hourOfDay;
-                minutes = minute;
-                tpd.dismiss();
-                AlarmSend(hours, minutes);
-            }
-        };
+        editor = getSharedPreferences(ALARM_RECODE, MODE_PRIVATE).edit();
+        alarm_time_gpf = getSharedPreferences(ALARM_RECODE, MODE_PRIVATE);
 
-        Calendar calendar = Calendar.getInstance();
-
-        gpf = getSharedPreferences("Alarm_Music", MODE_PRIVATE);
-        tpd = new TimePickerDialog(this, onTimeSetListener, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
-        select_music = (Button) findViewById(R.id.select_music_btn);
-        create_alarm = (Button) findViewById(R.id.create_alarm_btn);
-        music_name = (TextView) findViewById(R.id.music_name_tv);
+        music_gpf = getSharedPreferences(ALARM_MUSIC, MODE_PRIVATE);
+        select_music = (ImageButton) findViewById(R.id.select_music_btn);
+        alarm_time = (TextView) findViewById(R.id.alarm_time_tv);
         music_name_et = (EditText) findViewById(R.id.music_name_et);
+        mSwitch = (Switch) findViewById(R.id.switch_alarm_sth);
+        mSwitch.setChecked(true);
 //判断是否已经选择过音乐，如果选择过了就显示已选择的音乐，如果没有则显示hint
-        String name = gpf.getString("name", "");
-        Log.i("gpf", name);
+        String name = music_gpf.getString("name", "");
+        String alarm_time_gpfString = alarm_time_gpf.getString("time", "");
         if (!name.equals("")){
             music_name_et.setText(name);
         }
-
-
-
+        if (!alarm_time_gpfString.equals("")){
+            alarm_time.setText(alarm_time_gpfString);
+        }
+        mSwitch.setChecked(alarm_time_gpf.getBoolean("isChecked", false));
+        alarm_time.setOnClickListener(this);
         select_music.setOnClickListener(this);
-        create_alarm.setOnClickListener(this);
+        mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked){
+                    if (!alarm_time_gpf.getString("time", "").equals("")){
+                        AlarmSend(hours, minutes, ALARM_ACTION);
+                    }
+                    editor.putBoolean("isChecked", true);
+                }else {
+                    if (alarmManager == null && pendingIntent == null){
+                        editor.putBoolean("isChecked", false);
+                    }else {
+                        alarmManager.cancel(pendingIntent);
+                    }
+                }
+                editor.commit();
+            }
+        });
     }
 
     @Override
@@ -89,8 +115,43 @@ public class AlarmActivity extends Activity implements OnClickListener{
                 Intent select_music_intent = new Intent(AlarmActivity.this, MusicActivity.class);
                 startActivityForResult(select_music_intent, 1);
                 break;
-            case R.id.create_alarm_btn:
+            case R.id.alarm_time_tv:
+                calendar = Calendar.getInstance();
+                tpd = new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                        hours = hourOfDay;
+                        minutes = minute;
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Message message = new Message();
+                                message.what = ALARM_TIME_UPDATE;
+                                handler.sendMessage(message);
+                            }
+                        }).start();
+                        if (mSwitch.isChecked()){
+                            AlarmSend(hourOfDay, minute, ALARM_ACTION);
+                            editor.putBoolean("isChecked", true);
+                        }else {
+                            editor.putBoolean("isChecked", false);
+                        }
+                        if (hours < 10){
+                            sHours = "0" + hours;
+                        }else {
+                            sHours = hours + "";
+                        }
+                        if (minutes < 10){
+                            sMinutes = "0" + minutes;
+                        }else {
+                            sMinutes = "" + minutes;
+                        }
+                        editor.putString("time",sHours+":"+sMinutes);
+                        editor.commit();
+                    }
+                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
                 tpd.show();
+                break;
             default:break;
         }
     }
@@ -98,17 +159,20 @@ public class AlarmActivity extends Activity implements OnClickListener{
     @Override
     protected void onActivityResult(int RequestCode, int ResultCode, Intent data){
         if (data == null){
-            music_name_et.setText(gpf.getString("name", ""));
+            music_name_et.setText(music_gpf.getString("name", ""));
         }else {
             music_name_et.setText(data.getStringExtra("music"));
         }
     }
 
-    public void AlarmSend(int hour, int minute){
+    public static SharedPreferences getMusic_gpf(){
+        return music_gpf;
+    }
+
+    public void AlarmSend(int hour, int minute, String Action){
         Intent intent = new Intent();
-        intent.setAction("com.alarm.start");
+        intent.setAction(Action);
         intent.putExtra("msg", "Time to wake up!");
-        intent.putExtra("path", gpf.getString("path", ""));
         pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
 
         Calendar calendar = Calendar.getInstance();
@@ -122,24 +186,14 @@ public class AlarmActivity extends Activity implements OnClickListener{
     }
 
     public class Alarm{
-        private int aHour;
-        private int aMinute;
-        private boolean isOpen;
+        private String aTime;
 
-        public Alarm(int hour, int minute, boolean isOpen){
-            this.aHour = hour;
-            this.aMinute = minute;
-            this.isOpen = isOpen;
+        public Alarm(String Time){
+            this.aTime = Time;
         }
 
-        public int GetHour(){
-            return aHour;
-        }
-        public int GetMinute(){
-            return aMinute;
-        }
-        public boolean GetIsOpen(){
-            return isOpen;
+        public String getTime(){
+            return aTime;
         }
     }
 

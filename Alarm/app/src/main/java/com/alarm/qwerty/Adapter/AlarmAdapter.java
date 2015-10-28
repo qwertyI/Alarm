@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -16,7 +17,7 @@ import com.alarm.qwerty.R;
 import java.util.List;
 
 /**
- * Created by wei on 2015/10/26.
+ * Created by qwerty on 2015/10/26.
  */
 public class AlarmAdapter extends ArrayAdapter<Alarm> {
 
@@ -36,28 +37,24 @@ public class AlarmAdapter extends ArrayAdapter<Alarm> {
             view = LayoutInflater.from(getContext()).inflate(resourceId, null);
             viewHolder = new ViewHolder();
             viewHolder.time = (TextView) view.findViewById(R.id.alarm_item_tv);
-            viewHolder.isOpen = (Switch) view.findViewById(R.id.alarm_switch_btn);
+//            viewHolder.delete = (Button) view.findViewById(R.id.alarm_delete_btn);
             view.setTag(viewHolder);
         }else {
             view.getTag();
         }
-        viewHolder.time.setText(String.format("%s:%s", alarm.GetHour(), alarm.GetMinute()));
-        viewHolder.isOpen.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked){
-                    Log.i("path", "打开");
-                }else {
-                    Log.i("path", "关闭");
-                }
-            }
-        });
+        viewHolder.time.setText(alarm.getTime());
+//        viewHolder.delete.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+//            }
+//        });
         return view;
     }
 
     class ViewHolder{
         TextView time;
-        Switch isOpen;
+//        Button delete;
     }
 
 }
