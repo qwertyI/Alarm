@@ -6,10 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
-
 import com.alarm.qwerty.Activity.MusicActivity.MusicName;
 import com.alarm.qwerty.R;
-
 import java.util.List;
 
 /**

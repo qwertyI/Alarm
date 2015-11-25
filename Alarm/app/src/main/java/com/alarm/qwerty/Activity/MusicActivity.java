@@ -8,16 +8,19 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 
 import com.alarm.qwerty.Adapter.MusicAdapter;
+import com.alarm.qwerty.LoadTask.LoadAsyncTask;
 import com.alarm.qwerty.R;
+import com.alarm.qwerty.RefreshableView;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -39,8 +42,11 @@ public class MusicActivity extends Activity {
     private List<MusicPath> Music_path = new ArrayList<>();
     private SharedPreferences.Editor editor;
     private File file;
-
+    private MusicAdapter musicAdapter;
     private ListView music_lv;
+    private RefreshableView refreshableView;
+    private MusicName musicName;
+    private MusicPath musicPath;
 
     private Handler handler = new Handler() {
         public void handleMessage(Message message){
@@ -60,14 +66,11 @@ public class MusicActivity extends Activity {
         setContentView(R.layout.activity_music);
         editor = getSharedPreferences("Alarm_Music", MODE_PRIVATE).edit();
         file = Environment.getExternalStorageDirectory();
-        if (fileIsExists(MUSIC_FILE_NAME) && fileIsExists(MUSIC_FILE_PATH)){
-            try {
-                WriteToMusics();
-                WriteToMusicPath();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }else {
+        refreshableView = (RefreshableView) findViewById(R.id.refreshable_view);
+        music_lv = (ListView) findViewById(R.id.music_lv);
+        new LoadAsyncTask(this, music_lv, musicAdapter,
+                Musics, musicName,
+                Music_path, musicPath).execute();
 //            new Thread(new Runnable() {
 //                @Override
 //                public void run() {
@@ -76,17 +79,8 @@ public class MusicActivity extends Activity {
 //                    handler.sendMessage(message);
 //                }
 //            }).start();
-            getName(file);
-            for(MusicName musicName: Musics){
-                Save(MUSIC_FILE_NAME, musicName.getMusicName());
-            }
-            for (MusicPath music_path : Music_path){
-                Save(MUSIC_FILE_PATH, music_path.getMusicPath());
-            }
-        }
-        MusicAdapter musicAdapter = new MusicAdapter(this, R.layout.music_lv_item, Musics);
-        music_lv = (ListView) findViewById(R.id.music_lv);
-        music_lv.setAdapter(musicAdapter);
+
+
         music_lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -102,6 +96,21 @@ public class MusicActivity extends Activity {
                 finish();
             }
         });
+        refreshableView.setOnRefreshListener(new RefreshableView.PullToRefreshListener() {
+            @Override
+            public void onRefresh() {
+                try{
+                    Log.i("ASYNC_TASK", "" + MusicActivity.this.getFilesDir());
+                    DeleteFile(MUSIC_FILE_NAME);
+                    DeleteFile(MUSIC_FILE_PATH);
+                    new LoadAsyncTask(MusicActivity.this, music_lv, musicAdapter, Musics, musicName,
+                            Music_path, musicPath);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                refreshableView.finishRefreshing();
+            }
+        }, 0);
     }
 
 /*
@@ -131,7 +140,7 @@ public class MusicActivity extends Activity {
         }
     }
 
-    public class MusicName{
+    public static class MusicName{
         private String name;
 
         public MusicName(String name){
@@ -142,7 +151,7 @@ public class MusicActivity extends Activity {
         }
     }
 
-    public class MusicPath{
+    public static class MusicPath{
         private String path;
 
         public MusicPath(String path){
@@ -187,6 +196,7 @@ public class MusicActivity extends Activity {
     public boolean fileIsExists(String filename){
         try{
             File file = this.getFilesDir();
+            Log.i("ASYNC_TASK", this + "");
             String[] files = file.list();
             for (String file1:files){
                 if (file1.equals(filename)){
@@ -231,6 +241,16 @@ public class MusicActivity extends Activity {
         fileInputStream.close();
     }
 
+    public void DeleteFile(String FileName){
+        File file = MusicActivity.this.getFilesDir();
+        File[] files = file.listFiles();
+        for (File file1 : files){
+            if (file1.getName().equals(FileName)){
+                file1.delete();
+            }
+        }
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -252,4 +272,6 @@ public class MusicActivity extends Activity {
 
         return super.onOptionsItemSelected(item);
     }
+
+
 }
