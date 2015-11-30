@@ -17,12 +17,12 @@ import android.view.Window;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.ToggleButton;
+
 import com.alarm.qwerty.R;
-import com.alarm.qwerty.Activity.MusicActivity;
+
 import java.util.Calendar;
 
 public class AlarmActivity extends Activity implements OnClickListener{
@@ -35,7 +35,7 @@ public class AlarmActivity extends Activity implements OnClickListener{
     private ImageButton select_music;
     private TextView alarm_time;
     private EditText music_name_et;
-    private Switch mSwitch;
+    private ToggleButton mToggle;
 
     private static SharedPreferences music_gpf;
     private SharedPreferences alarm_time_gpf;
@@ -74,8 +74,8 @@ public class AlarmActivity extends Activity implements OnClickListener{
         select_music = (ImageButton) findViewById(R.id.select_music_btn);
         alarm_time = (TextView) findViewById(R.id.alarm_time_tv);
         music_name_et = (EditText) findViewById(R.id.music_name_et);
-        mSwitch = (Switch) findViewById(R.id.switch_alarm_sth);
-        mSwitch.setChecked(true);
+        mToggle = (ToggleButton) findViewById(R.id.switch_alarm_sth);
+        mToggle.setChecked(true);
 //判断是否已经选择过音乐，如果选择过了就显示已选择的音乐，如果没有则显示hint
         String name = music_gpf.getString("name", "");
         String alarm_time_gpfString = alarm_time_gpf.getString("time", "");
@@ -85,21 +85,21 @@ public class AlarmActivity extends Activity implements OnClickListener{
         if (!alarm_time_gpfString.equals("")){
             alarm_time.setText(alarm_time_gpfString);
         }
-        mSwitch.setChecked(alarm_time_gpf.getBoolean("isChecked", false));
+        mToggle.setChecked(alarm_time_gpf.getBoolean("isChecked", false));
         alarm_time.setOnClickListener(this);
         select_music.setOnClickListener(this);
-        mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        mToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked){
-                    if (!alarm_time_gpf.getString("time", "").equals("")){
+                if (isChecked) {
+                    if (!alarm_time_gpf.getString("time", "").equals("")) {
                         AlarmSend(hours, minutes, ALARM_ACTION);
                     }
                     editor.putBoolean("isChecked", true);
-                }else {
-                    if (alarmManager == null && pendingIntent == null){
+                } else {
+                    if (alarmManager == null && pendingIntent == null) {
                         editor.putBoolean("isChecked", false);
-                    }else {
+                    } else {
                         alarmManager.cancel(pendingIntent);
                     }
                 }
@@ -130,7 +130,7 @@ public class AlarmActivity extends Activity implements OnClickListener{
                                 handler.sendMessage(message);
                             }
                         }).start();
-                        if (mSwitch.isChecked()){
+                        if (mToggle.isChecked()){
                             AlarmSend(hourOfDay, minute, ALARM_ACTION);
                             editor.putBoolean("isChecked", true);
                         }else {

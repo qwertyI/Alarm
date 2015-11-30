@@ -140,7 +140,7 @@ public class MusicActivity extends Activity {
         }
     }
 
-    public static class MusicName{
+    public class MusicName{
         private String name;
 
         public MusicName(String name){
@@ -151,7 +151,7 @@ public class MusicActivity extends Activity {
         }
     }
 
-    public static class MusicPath{
+    public class MusicPath{
         private String path;
 
         public MusicPath(String path){

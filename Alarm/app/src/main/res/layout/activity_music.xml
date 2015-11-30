@@ -6,7 +6,7 @@
     <com.alarm.qwerty.RefreshableView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:id="@+id/refreshable_view">
+        android:id="@+id/refreshable_music_view">
 
         <ListView
             android:layout_width="match_parent"

@@ -15,6 +15,7 @@
             android:label="@string/title_activity_alarm" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -31,6 +32,9 @@
                 <action android:name="com.alarm.start" />
             </intent-filter>
         </receiver>
+
+        <activity android:name=".Activity.ShowAppActivity" >
+        </activity>
     </application>
 
 </manifest>
